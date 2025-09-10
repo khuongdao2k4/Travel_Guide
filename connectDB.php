@@ -2,7 +2,7 @@
 // connectDB.php - Kết nối với CSDL travel_guide
 
 $host = 'localhost';
-$dbname = 'travel_guide';
+$dbname = 'Smart_Travel_Website';
 $username = 'root';
 $password = '';
 

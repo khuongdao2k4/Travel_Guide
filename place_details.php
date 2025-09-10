@@ -1,12 +1,43 @@
 <?php
 include 'connectDB.php';
+
+$placeId = $_GET['id'] ?? '';
+if (empty($placeId)) {
+  echo "Không tìm thấy địa điểm.";
+  exit;
+}
+
+// Truy vấn chi tiết địa điểm (locations) + thông tin liên quan
+$sql = "
+    SELECT l.*, 
+           c.name AS city_name, 
+           r.name AS region_name, 
+           cat.name AS category_name
+    FROM locations l
+    JOIN cities c ON l.city_id = c.id
+    JOIN regions r ON c.region_id = r.id
+    JOIN categories cat ON l.category_id = cat.id
+    WHERE l.id = " . intval($placeId);
+
+// Debug nếu cần
+// echo "<pre>$sql</pre>";
+
+$result = $conn->query($sql);
+
+if ($result && $result->num_rows > 0) {
+  $place = $result->fetch_assoc();
+  // Debug: print_r($place);
+} else {
+  echo "Không tìm thấy thông tin chi tiết.";
+  exit;
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <title>Pacific - Free Bootstrap 4 Template by Colorlib</title>
+  <title>Pacific</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -54,8 +85,9 @@ include 'connectDB.php';
       width: 100%;
       position: absolute;
     }
+
     .ftco-section.detail {
-      padding-top:0px !important
+      padding-top: 0px !important
     }
   </style>
 </head>
@@ -89,9 +121,10 @@ include 'connectDB.php';
       <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-center">
         <div class="col-md-9 ftco-animate pb-5 text-center">
           <p class="breadcrumbs"><span class="mr-2"><a href="index.html">Home <i
-                  class="fa fa-chevron-right"></i></a></span> <span>About us <i class="fa fa-chevron-right"></i></span>
+                  class="fa fa-chevron-right"></i></a></span> <span>Place Detail <i
+                class="fa fa-chevron-right"></i></span>
           </p>
-          <h1 class="mb-0 bread">About Us</h1>
+          <h1 class="mb-0 bread">Place Detail</h1>
         </div>
       </div>
     </div>
@@ -207,6 +240,202 @@ include 'connectDB.php';
     </div>
   </section>
 
+  <section class="ftco-section detail">
+    <div class="container my-5">
+      <div class="place-header">
+        <h2><?= htmlspecialchars($place['name']) ?></h2>
+        <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($place['address']) ?></p>
+        <?php if (!empty($place['main_image'])): ?>
+          <img src="<?= htmlspecialchars($place['main_image']) ?>" alt="Ảnh đại diện" class="img-fluid rounded mb-3">
+        <?php endif; ?>
+
+        <?php if (!empty($place['content'])): ?>
+          <h4>Giới thiệu</h4>
+          <p><?= nl2br(htmlspecialchars($place['content'])) ?></p>
+        <?php endif; ?>
+
+        <?php if (!empty($place['audio_url'])): ?>
+          <h4>Audio hướng dẫn</h4>
+          <audio controls class="mb-4">
+            <source src="<?= htmlspecialchars($place['audio_url']) ?>" type="audio/mpeg">
+            Trình duyệt không hỗ trợ phát audio.
+          </audio>
+        <?php endif; ?>
+
+        <?php if (!empty($place['article_link'])): ?>
+          <h4>Bài viết liên quan</h4>
+          <a href="<?= htmlspecialchars($place['article_link']) ?>" class="btn btn-primary" target="_blank">Xem bài
+            viết</a>
+        <?php endif; ?>
+
+        <br>
+        <br>
+
+        <?php if (!empty($place['iframe_map'])): ?>
+          <div class="map-responsive mb-4">
+            <?= $place['iframe_map'] ?>
+          </div>
+        <?php endif; ?>
+      </div>
+      <!-- Form chọn số địa điểm -->
+      <form method="POST" class="itinerary-form">
+        <div class="form-group-row">
+          <label for="num_places" class="form-label">Số địa điểm muốn đi:</label>
+          <select name="num_places" id="num_places" class="form-select">
+            <?php for ($i = 2; $i <= 10; $i++): ?>
+              <option value="<?= $i ?>"><?= $i ?></option>
+            <?php endfor; ?>
+          </select>
+          <button type="submit" name="generate_plan" class="btn-plan">
+            🚀 Lên lịch trình
+          </button>
+        </div>
+      </form>
+
+      <?php
+      // --- Hàm Haversine ---
+      function haversineDistance($lat1, $lon1, $lat2, $lon2)
+      {
+        $R = 6371; // km
+        if ($lat1 === null || $lon1 === null || $lat2 === null || $lon2 === null)
+          return INF;
+        $lat1 = deg2rad((float) $lat1);
+        $lon1 = deg2rad((float) $lon1);
+        $lat2 = deg2rad((float) $lat2);
+        $lon2 = deg2rad((float) $lon2);
+        $dLat = $lat2 - $lat1;
+        $dLon = $lon2 - $lon1;
+        $a = sin($dLat / 2) * sin($dLat / 2) + cos($lat1) * cos($lat2) * sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        return $R * $c;
+      }
+
+      // --- Xử lý khi bấm "Lên lịch trình" ---
+      $plan = []; // sẽ chứa thứ tự các điểm (mỗi phần tử là associative array)
+      if (isset($_POST['generate_plan'])) {
+        $num_places = max(1, intval($_POST['num_places'] ?? 1));
+
+        // Lấy tất cả locations khác (bỏ những bản ghi không có lat/lon)
+        $sqlAll = "SELECT * FROM locations WHERE id != " . intval($place['id']);
+        $resAll = $conn->query($sqlAll);
+        $allPlaces = [];
+        while ($r = $resAll->fetch_assoc()) {
+          if ($r['latitude'] === null || $r['longitude'] === null || $r['latitude'] === '' || $r['longitude'] === '') {
+            continue;
+          }
+          $allPlaces[] = $r;
+        }
+
+        // Điểm bắt đầu = $place (đảm bảo có lat/lon)
+        $start = $place;
+        $start['distance_from_prev'] = 0.0; // gán rõ cho điểm đầu
+        $plan[] = $start;
+
+        $currentLat = $start['latitude'];
+        $currentLon = $start['longitude'];
+
+        // Lặp greedy chọn điểm gần nhất
+        while (count($plan) < $num_places && count($allPlaces) > 0) {
+          $nearestIndex = null;
+          $minDist = INF;
+
+          foreach ($allPlaces as $idx => $p) {
+            $dist = haversineDistance($currentLat, $currentLon, $p['latitude'], $p['longitude']);
+            if ($dist < $minDist) {
+              $minDist = $dist;
+              $nearestIndex = $idx;
+            }
+          }
+
+          if ($nearestIndex === null)
+            break;
+
+          // Lấy và gán distance_from_prev cho phần tử được chọn
+          $nearest = $allPlaces[$nearestIndex];
+          $nearest['distance_from_prev'] = $minDist;
+          $plan[] = $nearest;
+
+          // cập nhật current và xóa khỏi allPlaces
+          $currentLat = $nearest['latitude'];
+          $currentLon = $nearest['longitude'];
+          array_splice($allPlaces, $nearestIndex, 1);
+        }
+
+        // Lưu ý: nếu user chọn số lớn hơn số địa điểm có lat/lon, plan sẽ ngắn hơn yêu cầu
+      }
+
+      ?>
+      <?php if (!empty($plan)): ?>
+  <div class="itinerary-result mt-4" style="background-color: #ffffffff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+    <h2 class="mb-4" style="text-align: center; padding-top: 20px; font-weight: bold;"><i class="fas fa-route"></i> Lịch trình gợi ý</h2>
+
+    <div class="timeline" style="left: 10vw">
+      <?php foreach ($plan as $index => $p): ?>
+        <div class="timeline-item" >
+          <div class="timeline-marker"><?= $index + 1 ?></div>
+          <div class="timeline-card">
+            
+            <?php if (!empty($p['main_image'])): ?>
+              <img src="<?= htmlspecialchars($p['main_image']) ?>" 
+                   alt="<?= htmlspecialchars($p['name']) ?>" 
+                   class="timeline-img-top">
+            <?php endif; ?>
+
+            <div class="timeline-body">
+              <h5 class="mb-2"><?= htmlspecialchars($p['name']) ?></h5>
+
+              <?php if ($index === 0): ?>
+                <p class="small text-muted">🚩 Điểm bắt đầu</p>
+              <?php else: ?>
+                <p class="small text-muted">
+                  📍 Cách điểm trước ~
+                  <?= isset($p['distance_from_prev']) ? round($p['distance_from_prev'], 2) . ' km' : 'N/A' ?>
+                </p>
+              <?php endif; ?>
+
+              <?php if (!empty($p['address'])): ?>
+                <p class="small text-muted">
+                  <i class="fa fa-map-marker text-danger"></i>
+                  <?= htmlspecialchars($p['address']) ?>
+                </p>
+              <?php endif; ?>
+
+              <?php if (!empty($p['iframe_map'])): ?>
+                <a href="#" 
+                   class="btn btn-sm btn-outline-primary"
+                   onclick="showMap('<?= htmlspecialchars($p['iframe_map']) ?>')">
+                  Xem bản đồ
+                </a>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
+
+      <!-- Modal xem bản đồ -->
+      <div class="modal fade" id="mapModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-body p-0">
+              <div id="mapContainer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        function showMap(iframe) {
+          document.getElementById('mapContainer').innerHTML = iframe;
+          new bootstrap.Modal(document.getElementById('mapModal')).show();
+        }
+      </script>
+
+
+    </div>
+  </section>
 
   <section class="ftco-section testimony-section bg-bottom" style="background-image: url(images/bg_1.jpg);">
     <div class="overlay"></div>
@@ -431,7 +660,98 @@ include 'connectDB.php';
         stroke="#F96D00" />
     </svg></div>
 
+  <style>
+    .itinerary-form {
+      background: #f9fafc;
+      border: 1px solid #ddd;
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin-top: 30px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
 
+    .form-group-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .form-label {
+      font-weight: bold;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .form-select {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .btn-plan {
+      background: linear-gradient(45deg, #06b6d4, #3b82f6);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
+    .btn-plan:hover {
+      background: linear-gradient(45deg, #3b82f6, #06b6d4);
+    }
+  </style>
+  <style>
+    .timeline {
+  position: relative;
+  margin-left: 50px;
+  border-left: 3px solid #06b6d4;
+  padding-left: 30px;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -50px;
+  top: 0px;
+  background: #06b6d4;
+  color: #fff;
+  font-weight: bold;
+  width: 38px;
+  height: 38px;
+  line-height: 38px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.timeline-card {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  max-width: 550px;
+}
+
+.timeline-img-top {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.timeline-body {
+  padding: 15px;
+}
+
+  </style>
   <script src="js/jquery.min.js"></script>
   <script src="js/jquery-migrate-3.0.1.min.js"></script>
   <script src="js/popper.min.js"></script>

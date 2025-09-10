@@ -3,18 +3,18 @@ session_start();
 include 'connectDB.php';
 
 $regions = $conn->query("SELECT id, name FROM regions");
-$provinces = $conn->query("SELECT id, name, region_id FROM provinces");
-$places = $conn->query("SELECT id, name, province_id FROM places");
+$cities = $conn->query("SELECT id, name, region_id FROM cities");
+$locations = $conn->query("SELECT id, name, city_id FROM locations");
 $categories = $conn->query("SELECT id, name FROM categories");
 
-$provincesArray = [];
-while ($row = $provinces->fetch_assoc()) {
-    $provincesArray[] = $row;
+$citiesArray = [];
+while ($row = $cities->fetch_assoc()) {
+	$citiesArray[] = $row;
 }
 
-$placesArray = [];
-while ($row = $places->fetch_assoc()) {
-    $placesArray[] = $row;
+$locationsArray = [];
+while ($row = $locations->fetch_assoc()) {
+	$locationsArray[] = $row;
 }
 ?>
 
@@ -22,7 +22,7 @@ while ($row = $places->fetch_assoc()) {
 <html lang="en">
 
 <head>
-	<title>Pacific - Free Bootstrap 4 Template by Colorlib</title>
+	<title>Smart Travel</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -48,7 +48,7 @@ while ($row = $places->fetch_assoc()) {
 <body>
 	<nav class="navbar navbar-expand-lg navbar-dark ftco_navbar bg-dark ftco-navbar-light" id="ftco-navbar">
 		<div class="container">
-			<a class="navbar-brand" href="index.html">Thái Bình Dương<span>Công ty du lịch</span></a>
+			<a class="navbar-brand" href="index.html">Du Lịch Thông Minh<span>Công ty du lịch</span></a>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#ftco-nav"
 				aria-controls="ftco-nav" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="oi oi-menu"></span> Menu
@@ -158,7 +158,7 @@ while ($row = $places->fetch_assoc()) {
 		<div class="container">
 			<div class="row no-gutters slider-text js-fullheight align-items-center" data-scrollax-parent="true">
 				<div class="col-md-7 ftco-animate">
-					<span class="subheading">Chào mừng đến với Thái Bình Dương</span>
+					<span class="subheading">Chào mừng đến với Du Lịch Thông Minh</span>
 					<h1 class="mb-4">Khám phá địa điểm yêu thích của bạn cùng chúng tôi</h1>
 					<p class="caps">Du lịch đến bất kỳ nơi nào trên thế giới mà không cần phải đi vòng quanh</p>
 				</div>
@@ -191,203 +191,211 @@ while ($row = $places->fetch_assoc()) {
 							<div class="col-md-12  tab-wrap">
 
 								<div class="tab-content" id="v-pills-tabContent">
+									<div class="tab-pane fade show active" id="v-pills-1" role="tabpanel"
+										aria-labelledby="v-pills-nextgen-tab">
+										<form action="destination.php" class="search-property-1" method="GET">
+											<div class="row no-gutters">
 
-									<div class="tab-pane fade show active" id="v-pills-1" role="tabpanel" aria-labelledby="v-pills-nextgen-tab">
-									<form action="destination.php" class="search-property-1" method="GET">
-										<div class="row no-gutters">
-
-											<!-- Miền -->
-											<div class="col-md d-flex">
-												<div class="form-group p-4 border-0">
-													<label for="region">MIỀN</label>
-													<div class="form-field">
-														<div class="icon"><span class="fa fa-search"></span></div>
-														<select name="region" id="region" class="form-control">
-															<option value="">Chọn Theo Miền</option>
-															<?php foreach ($regions as $row): ?>
-																<option value="<?= $row['id'] ?>">
-																	<?= htmlspecialchars($row['name']) ?></option>
-															<?php endforeach; ?>
-														</select>
-													</div>
-												</div>
-											</div>
-
-											<!-- Tỉnh/Thành phố -->
-											<div class="col-md d-flex">
-												<div class="form-group p-4">
-													<label for="province">THÀNH PHỐ</label>
-													<div class="form-field">
-														<div class="icon"><span class="fa fa-search"></span></div>
-														<select name="province" id="province" class="form-control">
-															<option value="">Chọn Theo Thành Phố</option>
-														</select>
-													</div>
-												</div>
-											</div>
-
-											<!-- Địa Điểm -->
-											<div class="col-md d-flex">
-												<div class="form-group p-4">
-													<label for="place">ĐỊA ĐIỂM</label>
-													<div class="form-field">
-														<div class="icon"><span class="fa fa-search"></span></div>
-														<select name="place" id="place" class="form-control">
-															<option value="">Chọn Theo Địa Điểm</option>
-														</select>
-													</div>
-												</div>
-											</div>
-
-											<!-- Thể Loại -->
-											<div class="col-md d-flex">
-												<div class="form-group p-4">
-													<label for="category">THỂ LOẠI</label>
-													<div class="form-field">
-														<div class="select-wrap">
-															<div class="icon"><span class="fa fa-chevron-down"></span>
-															</div>
-															<select name="category" id="category" class="form-control">
-																<option value="">Du Lịch Nghỉ Dưỡng</option>
-																<?php foreach ($categories as $row): ?>
+												<!-- Miền -->
+												<div class="col-md d-flex">
+													<div class="form-group p-4 border-0">
+														<label for="region">MIỀN</label>
+														<div class="form-field">
+															<div class="icon"><span class="fa fa-search"></span></div>
+															<select name="region" id="region" class="form-control">
+																<option value="">Chọn Theo Miền</option>
+																<?php foreach ($regions as $row): ?>
 																	<option value="<?= $row['id'] ?>">
-																		<?= htmlspecialchars($row['name']) ?></option>
+																		<?= htmlspecialchars($row['name']) ?>
+																	</option>
 																<?php endforeach; ?>
 															</select>
 														</div>
 													</div>
 												</div>
-											</div>
 
-											<!-- Nút tìm kiếm -->
-											<div class="col-md d-flex">
-												<div class="form-group d-flex w-100 border-0">
-													<div class="form-field w-100 align-items-center d-flex">
-														<input type="submit" value="SEARCH"
-															class="align-self-stretch form-control btn btn-primary">
-													</div>
-												</div>
-											</div>
-										</div>
-									</form>
-								</div>
-
-								<script>
-									const provinces = <?= json_encode($provincesArray) ?>;
-									const places = <?= json_encode($placesArray) ?>;
-
-									document.getElementById('region').addEventListener('change', function () {
-										const regionId = this.value;
-										const provinceSelect = document.getElementById('province');
-										provinceSelect.innerHTML = '<option value="">Chọn Theo Thành Phố</option>';
-
-										provinces.forEach(p => {
-											if (p.region_id == regionId) {
-												const option = document.createElement('option');
-												option.value = p.id;
-												option.textContent = p.name;
-												provinceSelect.appendChild(option);
-											}
-										});
-
-										document.getElementById('place').innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
-									});
-
-									document.getElementById('province').addEventListener('change', function () {
-										const provinceId = this.value;
-										const placeSelect = document.getElementById('place');
-										placeSelect.innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
-
-										places.forEach(pl => {
-											if (pl.province_id == provinceId) {
-												const option = document.createElement('option');
-												option.value = pl.id;
-												option.textContent = pl.name;
-												placeSelect.appendChild(option);
-											}
-										});
-									});
-								</script>
-
-
-								<div class="tab-pane fade" id="v-pills-2" role="tabpanel"
-									aria-labelledby="v-pills-performance-tab">
-									<form action="#" class="search-property-1">
-										<div class="row no-gutters">
-											<div class="col-lg d-flex">
-												<div class="form-group p-4 border-0">
-													<label for="#">Destination</label>
-													<div class="form-field">
-														<div class="icon"><span class="fa fa-search"></span></div>
-														<input type="text" class="form-control"
-															placeholder="Search place">
-													</div>
-												</div>
-											</div>
-											<div class="col-lg d-flex">
-												<div class="form-group p-4">
-													<label for="#">Check-in date</label>
-													<div class="form-field">
-														<div class="icon"><span class="fa fa-calendar"></span></div>
-														<input type="text" class="form-control checkin_date"
-															placeholder="Check In Date">
-													</div>
-												</div>
-											</div>
-											<div class="col-lg d-flex">
-												<div class="form-group p-4">
-													<label for="#">Check-out date</label>
-													<div class="form-field">
-														<div class="icon"><span class="fa fa-calendar"></span></div>
-														<input type="text" class="form-control checkout_date"
-															placeholder="Check Out Date">
-													</div>
-												</div>
-											</div>
-											<div class="col-lg d-flex">
-												<div class="form-group p-4">
-													<label for="#">Price Limit</label>
-													<div class="form-field">
-														<div class="select-wrap">
-															<div class="icon"><span class="fa fa-chevron-down"></span>
-															</div>
-															<select name="" id="" class="form-control">
-																<option value="">$100</option>
-																<option value="">$10,000</option>
-																<option value="">$50,000</option>
-																<option value="">$100,000</option>
-																<option value="">$200,000</option>
-																<option value="">$300,000</option>
-																<option value="">$400,000</option>
-																<option value="">$500,000</option>
-																<option value="">$600,000</option>
-																<option value="">$700,000</option>
-																<option value="">$800,000</option>
-																<option value="">$900,000</option>
-																<option value="">$1,000,000</option>
-																<option value="">$2,000,000</option>
+												<!-- Tỉnh/Thành phố -->
+												<div class="col-md d-flex">
+													<div class="form-group p-4">
+														<label for="province">THÀNH PHỐ</label>
+														<div class="form-field">
+															<div class="icon"><span class="fa fa-search"></span></div>
+															<select name="city" id="city" class="form-control">
+																<option value="">Chọn Theo Thành Phố</option>
 															</select>
 														</div>
 													</div>
 												</div>
-											</div>
-											<div class="col-lg d-flex">
-												<div class="form-group d-flex w-100 border-0">
-													<div class="form-field w-100 align-items-center d-flex">
-														<input type="submit" value="Search"
-															class="align-self-stretch form-control btn btn-primary p-0">
+
+												<!-- Địa Điểm -->
+												<div class="col-md d-flex">
+													<div class="form-group p-4">
+														<label for="place">ĐỊA ĐIỂM</label>
+														<div class="form-field">
+															<div class="icon"><span class="fa fa-search"></span></div>
+															<select name="place" id="place" class="form-control">
+																<option value="">Chọn Theo Địa Điểm</option>
+															</select>
+														</div>
+													</div>
+												</div>
+
+												<!-- Thể Loại -->
+												<div class="col-md d-flex">
+													<div class="form-group p-4">
+														<label for="category">THỂ LOẠI</label>
+														<div class="form-field">
+															<div class="select-wrap">
+																<div class="icon"><span
+																		class="fa fa-chevron-down"></span></div>
+																<select name="category" id="category"
+																	class="form-control">
+																	<option value="">Chọn Thể Loại</option>
+																	<?php foreach ($categories as $row): ?>
+																		<option value="<?= $row['id'] ?>">
+																			<?= htmlspecialchars($row['name']) ?>
+																		</option>
+																	<?php endforeach; ?>
+																</select>
+															</div>
+														</div>
+													</div>
+												</div>
+
+												<!-- Nút tìm kiếm -->
+												<div class="col-md d-flex">
+													<div class="form-group d-flex w-100 border-0">
+														<div class="form-field w-100 align-items-center d-flex">
+															<input type="submit" value="SEARCH"
+																class="align-self-stretch form-control btn btn-primary">
+														</div>
 													</div>
 												</div>
 											</div>
-										</div>
-									</form>
+										</form>
+									</div>
+ <!-- #region -->
+									<script>
+										// Dữ liệu JSON từ PHP
+										const cities = <?= json_encode($citiesArray ?? []) ?>;       // SELECT id, name, region_id FROM cities
+										const locations = <?= json_encode($locationsArray ?? []) ?>; // SELECT id, name, city_id FROM locations
+
+										const regionSelect = document.getElementById('region');
+										const citySelect = document.getElementById('city');   // combobox thành phố
+										const locationSelect = document.getElementById('place');  // combobox địa điểm
+
+										// Khi chọn Miền -> lọc Thành phố
+										regionSelect.addEventListener('change', function () {
+											const regionId = this.value;
+											citySelect.innerHTML = '<option value="">Chọn Theo Thành Phố</option>';
+											locationSelect.innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
+
+											cities.forEach(city => {
+												if (city.region_id == regionId) {
+													const option = document.createElement('option');
+													option.value = city.id;
+													option.textContent = city.name;
+													citySelect.appendChild(option);
+												}
+											});
+										});
+
+										// Khi chọn Thành phố -> lọc Địa điểm
+										citySelect.addEventListener('change', function () {
+											const cityId = this.value;
+											locationSelect.innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
+
+											locations.forEach(loc => {
+												if (loc.city_id == cityId) {
+													const option = document.createElement('option');
+													option.value = loc.id;
+													option.textContent = loc.name;
+													locationSelect.appendChild(option);
+												}
+											});
+										});
+									</script>
+
+
+									<div class="tab-pane fade" id="v-pills-2" role="tabpanel"
+										aria-labelledby="v-pills-performance-tab">
+										<form action="#" class="search-property-1">
+											<div class="row no-gutters">
+												<div class="col-lg d-flex">
+													<div class="form-group p-4 border-0">
+														<label for="#">Destination</label>
+														<div class="form-field">
+															<div class="icon"><span class="fa fa-search"></span></div>
+															<input type="text" class="form-control"
+																placeholder="Search place">
+														</div>
+													</div>
+												</div>
+												<div class="col-lg d-flex">
+													<div class="form-group p-4">
+														<label for="#">Check-in date</label>
+														<div class="form-field">
+															<div class="icon"><span class="fa fa-calendar"></span></div>
+															<input type="text" class="form-control checkin_date"
+																placeholder="Check In Date">
+														</div>
+													</div>
+												</div>
+												<div class="col-lg d-flex">
+													<div class="form-group p-4">
+														<label for="#">Check-out date</label>
+														<div class="form-field">
+															<div class="icon"><span class="fa fa-calendar"></span></div>
+															<input type="text" class="form-control checkout_date"
+																placeholder="Check Out Date">
+														</div>
+													</div>
+												</div>
+												<div class="col-lg d-flex">
+													<div class="form-group p-4">
+														<label for="#">Price Limit</label>
+														<div class="form-field">
+															<div class="select-wrap">
+																<div class="icon"><span
+																		class="fa fa-chevron-down"></span>
+																</div>
+																<select name="" id="" class="form-control">
+																	<option value="">$100</option>
+																	<option value="">$10,000</option>
+																	<option value="">$50,000</option>
+																	<option value="">$100,000</option>
+																	<option value="">$200,000</option>
+																	<option value="">$300,000</option>
+																	<option value="">$400,000</option>
+																	<option value="">$500,000</option>
+																	<option value="">$600,000</option>
+																	<option value="">$700,000</option>
+																	<option value="">$800,000</option>
+																	<option value="">$900,000</option>
+																	<option value="">$1,000,000</option>
+																	<option value="">$2,000,000</option>
+																</select>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class="col-lg d-flex">
+													<div class="form-group d-flex w-100 border-0">
+														<div class="form-field w-100 align-items-center d-flex">
+															<input type="submit" value="Search"
+																class="align-self-stretch form-control btn btn-primary p-0">
+														</div>
+													</div>
+												</div>
+											</div>
+										</form>
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		</div>
 	</section>
 
 	<section class="ftco-section services-section">

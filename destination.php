@@ -2,29 +2,34 @@
 include 'connectDB.php';
 
 $regionId = $_GET['region'] ?? '';
-$provinceId = $_GET['province'] ?? '';
+$cityId = $_GET['city'] ?? '';
 $placeId = $_GET['place'] ?? '';
 $categoryId = $_GET['category'] ?? '';
 
-// Tạo câu truy vấn SQL với các điều kiện lọc
-$sql = "SELECT * FROM places WHERE 1";
+$sql = "
+    SELECT locations.*, cities.name AS city_name, regions.name AS region_name, categories.name AS category_name
+    FROM locations
+    JOIN cities ON locations.city_id = cities.id
+    JOIN regions ON cities.region_id = regions.id
+    JOIN categories ON locations.category_id = categories.id
+    WHERE 1
+";
 
 if (!empty($regionId)) {
-  $sql .= " AND region_id = " . intval($regionId);
+  $sql .= " AND regions.id = " . intval($regionId);
 }
-if (!empty($provinceId)) {
-  $sql .= " AND province_id = " . intval($provinceId);
+if (!empty($cityId)) {
+  $sql .= " AND cities.id = " . intval($cityId);
 }
 if (!empty($placeId)) {
-  $sql .= " AND id = " . intval($placeId);
+  $sql .= " AND locations.id = " . intval($placeId);
 }
 if (!empty($categoryId)) {
-  $sql .= " AND category_id = " . intval($categoryId);
+  $sql .= " AND categories.id = " . intval($categoryId);
 }
 
 $result = $conn->query($sql);
 ?>
-
 
 <!DOCTYPE html>
 <html lang="vi">
@@ -98,19 +103,20 @@ $result = $conn->query($sql);
           <div class="search-wrap-1 ftco-animate">
             <?php
             $regions = $conn->query("SELECT id, name FROM regions");
-            $provinces = $conn->query("SELECT id, name, region_id FROM provinces");
-            $places = $conn->query("SELECT id, name, province_id FROM places");
+            $cities = $conn->query("SELECT id, name, region_id FROM cities");
+            $locations = $conn->query("SELECT id, name, city_id FROM locations");
             $categories = $conn->query("SELECT id, name FROM categories");
 
-            $provincesArray = [];
-            while ($row = $provinces->fetch_assoc()) {
-              $provincesArray[] = $row;
+            $citiesArray = [];
+            while ($row = $cities->fetch_assoc()) {
+              $citiesArray[] = $row;
             }
 
-            $placesArray = [];
-            while ($row = $places->fetch_assoc()) {
-              $placesArray[] = $row;
+            $locationsArray = [];
+            while ($row = $locations->fetch_assoc()) {
+              $locationsArray[] = $row;
             }
+
             ?>
             <form action="destination.php" class="search-property-1" method="GET">
               <div class="row no-gutters">
@@ -139,7 +145,7 @@ $result = $conn->query($sql);
                     <label for="province">THÀNH PHỐ</label>
                     <div class="form-field">
                       <div class="icon"><span class="fa fa-search"></span></div>
-                      <select name="province" id="province" class="form-control">
+                      <select name="city" id="city" class="form-control">
                         <option value="">Chọn Theo Thành Phố</option>
                       </select>
                     </div>
@@ -191,72 +197,100 @@ $result = $conn->query($sql);
               </div>
             </form>
             <script>
-              const provinces = <?= json_encode($provincesArray) ?>;
-              const places = <?= json_encode($placesArray) ?>;
+              const cities = <?= json_encode($citiesArray ?? []) ?>;        // lấy từ bảng cities
+              const locations = <?= json_encode($locationsArray ?? []) ?>;  // lấy từ bảng locations
 
-              document.getElementById('region').addEventListener('change', function () {
+              const regionSelect = document.getElementById('region');
+              const citySelect = document.getElementById('city');   // combobox thành phố (giữ id="province" nếu HTML chưa đổi)
+              const locationSelect = document.getElementById('place');  // combobox địa điểm
+
+              // Khi chọn Miền -> lọc Thành phố
+              regionSelect.addEventListener('change', function () {
                 const regionId = this.value;
-                const provinceSelect = document.getElementById('province');
-                provinceSelect.innerHTML = '<option value="">Chọn Theo Thành Phố</option>';
+                citySelect.innerHTML = '<option value="">Chọn Theo Thành Phố</option>';
+                locationSelect.innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
 
-                provinces.forEach(p => {
-                  if (p.region_id == regionId) {
+                cities.forEach(c => {
+                  if (c.region_id == regionId) {
                     const option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = p.name;
-                    provinceSelect.appendChild(option);
+                    option.value = c.id;
+                    option.textContent = c.name;
+                    citySelect.appendChild(option);
                   }
                 });
-
-                document.getElementById('place').innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
               });
 
-              document.getElementById('province').addEventListener('change', function () {
-                const provinceId = this.value;
-                const placeSelect = document.getElementById('place');
-                placeSelect.innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
+              // Khi chọn Thành phố -> lọc Địa điểm
+              citySelect.addEventListener('change', function () {
+                const cityId = this.value;
+                locationSelect.innerHTML = '<option value="">Chọn Theo Địa Điểm</option>';
 
-                places.forEach(pl => {
-                  if (pl.province_id == provinceId) {
+                locations.forEach(loc => {
+                  if (loc.city_id == cityId) {
                     const option = document.createElement('option');
-                    option.value = pl.id;
-                    option.textContent = pl.name;
-                    placeSelect.appendChild(option);
+                    option.value = loc.id;
+                    option.textContent = loc.name;
+                    locationSelect.appendChild(option);
                   }
                 });
               });
             </script>
+
           </div>
         </div>
       </div>
     </div>
   </section>
 
-<section class="ftco-section">
-  <div class="container">
-    <div class="row">
-      <?php if ($result && $result->num_rows > 0): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
-          <div class="col-md-4 ftco-animate">
-            <div class="project-wrap">
-              <a href="about.php?id=<?= $row['id'] ?>" class="img" style="background-image: url('<?= htmlspecialchars($row['main_image']) ?>');">
-              <span class="price">Hot</span>  
-              </a>
-              <div class="text p-4">
-                <h3><a href="#"><?= htmlspecialchars($row['name']) ?></a></h3>
-                <p class="location"><span class="fa fa-map-marker"></span> <?= htmlspecialchars($row['address']) ?></p>
-                <!-- <div class="iframe-map">
-                  <?= $row['iframe_map'] ?>
-                </div> -->
+  <section class="ftco-section">
+    <div class="container">
+      <div class="row">
+        <?php if ($result && $result->num_rows > 0): ?>
+          <?php while ($row = $result->fetch_assoc()): ?>
+            <div class="col-md-4 ftco-animate mb-4">
+              <div class="project-wrap shadow-sm rounded overflow-hidden h-100">
+                <!-- Ảnh -->
+                <a href="place_details.php?id=<?= $row['id'] ?>" class="img d-block"
+                  style="background-image: url('<?= htmlspecialchars($row['main_image'] ?? "uploads/default.jpg") ?>'); height:220px; background-size:cover; background-position:center;">
+                  <span class="price badge bg-danger position-absolute m-2">Hot</span>
+                </a>
+
+                <!-- Nội dung -->
+                <div class="text p-3 bg-white">
+                  <!-- Tên -->
+                  <h3 class="mb-2 fw-bold">
+                    <a href="place_details.php?id=<?= $row['id'] ?>" class="text-dark">
+                      <?= htmlspecialchars($row['name']) ?>
+                    </a>
+                  </h3>
+
+                  <!-- Địa chỉ -->
+                  <?php if (!empty($row['address'])): ?>
+                    <p class="location mb-2 text-muted small">
+                      <span class="fa fa-map-marker text-danger me-1"></span>
+                      <?= htmlspecialchars($row['address']) ?>
+                    </p>
+                  <?php endif; ?>
+
+                  <!-- Đánh giá + Thời gian tham quan -->
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="rating text-warning">
+                      <i class="fa fa-star"></i> <?= number_format($row['rating'], 1) ?>/5
+                    </span>
+                    <span class="visit-time text-primary small">
+                      <i class="fa fa-clock"></i> <?= $row['visit_time'] ?> giờ
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        <?php endwhile; ?>
-      <?php else: ?>
-        <p>Không tìm thấy kết quả phù hợp.</p>
-      <?php endif; ?>
-    </div>
-    <div class="row mt-5">
+          <?php endwhile; ?>
+        <?php else: ?>
+          <p class="text-center text-muted">Không tìm thấy kết quả phù hợp.</p>
+        <?php endif; ?>
+      </div>
+
+      <div class="row mt-5">
         <div class="col text-center">
           <div class="block-27">
             <ul>
@@ -271,8 +305,8 @@ $result = $conn->query($sql);
           </div>
         </div>
       </div>
-  </div>
-</section>
+    </div>
+  </section>
 
 
 
